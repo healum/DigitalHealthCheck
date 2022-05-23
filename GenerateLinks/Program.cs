@@ -14,7 +14,7 @@ namespace GenerateLinks
 
     internal class Program
     {
-        const string AesHexKey = "<256-bit-hex-key>";
+        const string AesHexKey = "73357638792F423F4528482B4D6250655368566D597133743677397A24432646";
 
         static IEnumerable<string> GenerateLinks(string sourceFile, string linkFormat)
         {

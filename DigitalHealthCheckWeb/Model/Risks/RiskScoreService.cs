@@ -39,34 +39,44 @@ namespace DigitalHealthCheckWeb.Model.Risks
 
         public async Task UpdateRisksForCheckAsync(string id, bool useVariant)
         {
-            if (string.IsNullOrEmpty(id))
+
+            try
             {
-                throw new ArgumentException($"'{nameof(id)}' cannot be null or empty.", nameof(id));
+                if (string.IsNullOrEmpty(id))
+                {
+                    throw new ArgumentException($"'{nameof(id)}' cannot be null or empty.", nameof(id));
+                }
+
+                logger.LogInformation($"Loading check for id {id}");
+
+
+                var check = await database.HealthChecks.FindAsync(Guid.Parse(id));
+
+                logger.LogInformation($"Got check for id {id}");
+
+                //Because we're loading asynchronously, we need to force a reload here, or sometimes we don't find the variant.
+
+                await database.Entry(check).ReloadAsync();
+
+                logger.LogInformation($"Reloaded check for id {id}");
+
+                if (useVariant)
+                {
+                    await database.Entry(check).Reference(c => c.Variant).LoadAsync();
+                }
+
+                if (check is null)
+                {
+                    throw new System.InvalidOperationException($"Check with id {id} could not be found.");
+                }
+
+                await UpdateRisksForCheckAsync(check, useVariant);
+            } catch(Exception ex)
+            {
+                Console.WriteLine("UpdateRisksForCheckAsync");
+                Console.WriteLine(ex.Message);
             }
 
-            logger.LogInformation($"Loading check for id {id}");
-
-            var check = await database.HealthChecks.FindAsync(Guid.Parse(id));
-
-            logger.LogInformation($"Got check for id {id}");
-
-            //Because we're loading asynchronously, we need to force a reload here, or sometimes we don't find the variant.
-
-            await database.Entry(check).ReloadAsync();
-
-            logger.LogInformation($"Reloaded check for id {id}");
-
-            if (useVariant)
-            {
-                await database.Entry(check).Reference(c => c.Variant).LoadAsync();
-            }
-
-            if (check is null)
-            {
-                throw new System.InvalidOperationException($"Check with id {id} could not be found.");
-            }
-
-            await UpdateRisksForCheckAsync(check, useVariant);
         }
 
         /// <summary>

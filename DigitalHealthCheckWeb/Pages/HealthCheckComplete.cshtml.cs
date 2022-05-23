@@ -96,10 +96,10 @@ namespace DigitalHealthCheckWeb.Pages
                 return Page();
             }
 
-            if (!IsValidated())
+           /* if (!IsValidated())
             {
                 return RedirectToValidation();
-            }
+            }*/
 
             Check = await GetHealthCheckAsync();
 

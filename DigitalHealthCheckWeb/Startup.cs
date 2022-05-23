@@ -31,7 +31,7 @@ namespace DigitalHealthCheckWeb
 
     public class Startup
     {
-        const string AesHexKey = "<256-bit-hex-key>";
+        const string AesHexKey = "73357638792F423F4528482B4D6250655368566D597133743677397A24432646";
 
         public Startup(IConfiguration configuration)
         {
@@ -45,7 +45,7 @@ namespace DigitalHealthCheckWeb
         public void ConfigureServices(IServiceCollection services)
         {
             var connectionString = Configuration.GetConnectionString("DatabaseConnection");
-
+            Console.WriteLine("Connection string is", connectionString);
             services.AddRazorPages();
             services.AddSession(options => options.IdleTimeout = TimeSpan.FromHours(2));
             services.AddMemoryCache();
@@ -135,6 +135,7 @@ namespace DigitalHealthCheckWeb
 
             app.UseEndpoints(endpoints =>
             {
+        
                 endpoints.MapRazorPages();
             });
         }

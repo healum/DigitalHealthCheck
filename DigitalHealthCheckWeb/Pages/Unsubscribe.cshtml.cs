@@ -20,21 +20,30 @@ namespace DigitalHealthCheckWeb.Pages
         public async Task OnGet()
         {
             if(Guid.TryParse(Id, out var id))
-            {
-                var check = await Database.HealthChecks.FindAsync(id);
-
-                if(check is null)
+            {   
+                try
                 {
-                    Success = false;
-                }
-                else
+                    var check = await Database.HealthChecks.FindAsync(id);
+
+                    if (check is null)
+                    {
+                        Success = false;
+                    }
+                    else
+                    {
+                        check.EmailAddress = null;
+
+                        await Database.SaveChangesAsync();
+
+                        Success = true;
+                    }
+
+                } catch(Exception ex)
                 {
-                    check.EmailAddress = null;
-
-                    await Database.SaveChangesAsync();
-
-                    Success = true;
+                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("OnGet");
                 }
+
             }
             else
             {

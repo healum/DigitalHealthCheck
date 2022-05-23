@@ -152,7 +152,7 @@ namespace DigitalHealthCheckWeb.Pages
             }
         }
 
-        static int CalculateAge(DateTime birthDate)
+        public static int CalculateAge(DateTime birthDate)
         {
             var today = DateTime.Today;
 

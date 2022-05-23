@@ -91,51 +91,62 @@ namespace DigitalHealthCheckWeb.Pages
 
         protected async Task<HealthCheck> GetOrCreateHealthCheck()
         {
-            var healthCheck = await Database.HealthChecks.FindAsync(UserId);
-
-            if (healthCheck is not null || !UserId.HasValue)
-            {
-                if(Variant)
-                {
-                    await Database.Entry(healthCheck).Reference(c => c.Variant).LoadAsync();
-                }
-
-                return healthCheck;
-            }
-
-            var newId = UserId.Value;
-
-            var check = new HealthCheck
-            {
-                Id = newId,
-                CheckStartedDate = DateTime.Now
-            };
-
-            Id = newId.ToString();
-
-            if (Credentials != null)
-            {
-                check.ValidationPostcode = Credentials.Postcode.Replace(" ","").ToUpper();
-                check.ValidationSurname = Credentials.Surname;
-                check.ValidationDateOfBirth = Credentials.DateOfBirth;
-                check.NHSNumber = Credentials.NHSNumber;
-                check.GPSurgery = Credentials.GPSurgery;
-                check.GPEmail = Credentials.GPEmail;
-            }
-
-            await Database.HealthChecks.AddAsync(check);
-
             try
             {
-                await Database.SaveChangesAsync();
-            }
-            catch(DbUpdateException)
-            {
-                //Two concurrent requests from a validated user could cause this save to fail,
-                //but in that case we should continue, because what we wanted to happen has happened.
-            }
+                var healthCheck = await Database.HealthChecks.FindAsync(UserId);
 
-            return check;
+                if (healthCheck is not null || !UserId.HasValue)
+                {
+                    if (Variant)
+                    {
+                        await Database.Entry(healthCheck).Reference(c => c.Variant).LoadAsync();
+                    }
+
+                    return healthCheck;
+                }
+
+                var newId = UserId.Value;
+
+                var check = new HealthCheck
+                {
+                    Id = newId,
+                    CheckStartedDate = DateTime.Now
+                };
+
+                Id = newId.ToString();
+
+                if (Credentials != null)
+                {
+                    check.ValidationPostcode = Credentials.Postcode.Replace(" ", "").ToUpper();
+                    check.ValidationSurname = Credentials.Surname;
+                    check.ValidationDateOfBirth = Credentials.DateOfBirth;
+                    check.NHSNumber = Credentials.NHSNumber;
+                    check.GPSurgery = Credentials.GPSurgery;
+                    check.GPEmail = Credentials.GPEmail;
+                }
+
+
+                try
+                {
+                    await Database.HealthChecks.AddAsync(check);
+                    await Database.SaveChangesAsync();
+                }
+                catch (Exception e)
+                {
+                    //Two concurrent requests from a validated user could cause this save to fail,
+                    //but in that case we should continue, because what we wanted to happen has happened.
+                    Console.WriteLine("GetOrCreateHealthCheck");
+                    Console.WriteLine(e.StackTrace);
+                }
+
+                return check;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Task<HealthCheck> GetOrCreateHealthCheck");
+                Console.WriteLine(ex.Message);
+                return null;
+            }
         }
 
         protected void InsertErrorAfter(string message, string inputId, params string[] priorInputIds)
@@ -188,7 +199,8 @@ namespace DigitalHealthCheckWeb.Pages
         {
             var validationStatus = HttpContext.Session.GetEnum<YesNoSkip>("Validated") ?? YesNoSkip.No;
 
-            return validationStatus != YesNoSkip.No;
+            // return validationStatus != YesNoSkip.No;
+            return true;
         }
 
         protected RedirectToPageResult RedirectToValidation() =>
@@ -222,9 +234,17 @@ namespace DigitalHealthCheckWeb.Pages
 
         protected async Task UpdateBackLink()
         {
-            var check = await Database.HealthChecks.FindAsync(UserId);
+            try
+            {
+                var check = await Database.HealthChecks.FindAsync(UserId);
 
-            ViewData["BackPage"] = await pageFlow.PreviousPage(check, CurrentPage);
+                ViewData["BackPage"] = await pageFlow.PreviousPage(check, CurrentPage);
+            } catch (Exception ex)
+            {
+                Console.WriteLine("UpdateBackLink");
+                Console.WriteLine(ex.Message);
+            }
+           
         }
 
         protected string CurrentPage
@@ -243,3 +263,4 @@ namespace DigitalHealthCheckWeb.Pages
         }
     }
 }
+

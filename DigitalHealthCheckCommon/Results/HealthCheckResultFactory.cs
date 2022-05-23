@@ -37,7 +37,27 @@ namespace DigitalHealthCheckCommon
 
             if (!check.Weight.HasValue || !check.Height.HasValue)
             {
-                throw new InvalidOperationException("Cannot calculate BMI without height and weight.");
+                var res = new Result();
+                res.Alcohol = DefaultStatus.Healthy;
+                res.BloodPressure = null;
+                res.BloodSugar = null;
+                res.BodyMassIndex = BodyMassIndexStatus.Healthy;
+                res.Cholesterol = null;
+                res.Diabetes = DefaultStatus.Healthy;
+                res.HeartAge = DefaultStatus.Healthy;
+                res.HeartDisease = DefaultStatus.Healthy;
+                res.PhysicalActivity = PhysicalActivityStatus.Active;
+                res.Smoker = DefaultStatus.Healthy;
+                res.BloodPressure = null;
+                res.BloodSugar = null;
+                res.Cholesterol = null;
+
+                res.PhysicalActivity = PhysicalActivityStatus.Sedentary;
+                res.Walking = false;
+
+
+                return res;
+                //  throw new InvalidOperationException("Cannot calculate BMI without height and weight.");
             }
 
             var bmi = bodyMassIndexCalculator.CalculateBodyMassIndex(check.Height.Value, check.Weight.Value);

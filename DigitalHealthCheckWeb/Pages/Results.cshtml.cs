@@ -1,3 +1,5 @@
+using System;
+using System.Threading.Tasks;
 using DigitalHealthCheckCommon;
 using DigitalHealthCheckCommon.Mail;
 using DigitalHealthCheckEF;
@@ -5,8 +7,6 @@ using DigitalHealthCheckWeb.Helpers;
 using DigitalHealthCheckWeb.Model;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Threading.Tasks;
 
 namespace DigitalHealthCheckWeb.Pages
 {
@@ -34,7 +34,7 @@ namespace DigitalHealthCheckWeb.Pages
             IPageFlow pageFlow,
             ILogger<ResultsModel> logger,
             IMailNotificationEngine mailEngine,
-            IPageRenderer pageRenderer) 
+            IPageRenderer pageRenderer)
             : base(database, credentialDecrypter, pageFlow)
         {
             this.resultFactory = resultFactory;
@@ -50,19 +50,20 @@ namespace DigitalHealthCheckWeb.Pages
         public Priorities Priorities { get; set; }
         public async Task<IActionResult> OnGetAsync()
         {
-            if(!IsValidated())
+/*           if (!IsValidated())
             {
                 return RedirectToValidation();
             }
 
-            var healthCheck = await GetHealthCheckAsync();
+            var healthCheck = await GetHealthCheckAsync();*/
 
-            if (healthCheck is null)
+         /*   if (healthCheck is null)
             {
+                //Console.WriteLine("Health check is null");
                 return RedirectWithId("./Index");
-            }
+            }*/
 
-            if(healthCheck.GenderAffirmation != true)
+          /*  if (healthCheck.GenderAffirmation != true)
             {
                 // We need to send a GP copy of the results as soon as we can.
                 // With those on Gender Affirmation treatment, we have one more step to confirm which
@@ -70,24 +71,46 @@ namespace DigitalHealthCheckWeb.Pages
                 // For those patients, we send on the OnPost in this Page, but everybody else we can send now.
 
                 await SendGPEmail();
-            }
+              
+            }*/
 
-            Priorities = new Priorities
-            {
-                FirstHealthPriority = healthCheck.FirstHealthPriorityAfterResults,
-                SecondHealthPriority = healthCheck.SecondHealthPriorityAfterResults
-            };
+           
 
-            LoadResult(healthCheck);
+
+
+            LoadResult(null);
 
             return Page();
         }
 
         void LoadResult(HealthCheck healthCheck)
         {
-            Check = healthCheck;
-            logger.LogInformation($"Get results for healthcheck Id {healthCheck.Id}");
-            Result = resultFactory.GetResult(healthCheck, Variant);
+            // Check = healthCheck;
+
+            if (healthCheck is null)
+            {
+                Result = new Result();
+                Check = new HealthCheck();
+
+                Result.BloodPressure = null;
+                Result.BloodSugar = null;
+                Result.Cholesterol = null;
+
+                Check.GenderAffirmation = false;
+                Priorities = new Priorities
+                {
+                    FirstHealthPriority = Check.FirstHealthPriorityAfterResults,
+                    SecondHealthPriority = Check.SecondHealthPriorityAfterResults
+                };
+
+                // Inorder to skip validation few fields are initialized with default values
+               
+            }
+            else
+            {
+                logger.LogInformation($"Get results for healthcheck Id {healthCheck.Id}");
+                Result = resultFactory.GetResult(healthCheck, Variant);
+            }
         }
 
         class PrioritiesSanitised
@@ -130,8 +153,8 @@ namespace DigitalHealthCheckWeb.Pages
 
             return isValid ? new PrioritiesSanitised
             {
-                 FirstHealthPriority = model.FirstHealthPriority,
-                 SecondHealthPriority = model.SecondHealthPriority
+                FirstHealthPriority = model.FirstHealthPriority,
+                SecondHealthPriority = model.SecondHealthPriority
             } : null;
         }
 
@@ -152,7 +175,7 @@ namespace DigitalHealthCheckWeb.Pages
                 await Database.Entry(Check).Collection(c => c.ChosenInterventions).LoadAsync();
 
                 Result = resultFactory.GetResult(Check, Variant);
-            
+
                 try
                 {
                     var html = await pageRenderer.RenderHtmlAsync("GPEmail", this);
@@ -198,12 +221,19 @@ namespace DigitalHealthCheckWeb.Pages
             Priorities = priorities;
 
             var healthCheck = await GetHealthCheckAsync();
+            healthCheck.Postcode = "EC1A 1BB";
+            healthCheck.DateOfBirth = new DateTime(day: 01, month: 01, year: 1990);
+            healthCheck.Surname = "User";
+            healthCheck.FirstName = "Test";
+            healthCheck.Age = ValidationModel.CalculateAge((DateTime)healthCheck.DateOfBirth);
+            await Database.SaveChangesAsync();
 
-            if (healthCheck is null)
-            {
-                return RedirectWithId("./Index");
-            }
-
+            /*  
+             * if (healthCheck is null)
+                {
+                    return RedirectWithId("./Index");
+                }
+            */
             var sanitisedModel = ValidateAndSanitise(priorities);
 
             if (sanitisedModel is not null)
@@ -259,7 +289,7 @@ namespace DigitalHealthCheckWeb.Pages
 
             if (priorities.SubmitAction == "GPSexAtBirth")
             {
-                if(Check.SexAtBirth == Check.Variant.Sex)
+                if (Check.SexAtBirth == Check.Variant.Sex)
                 {
                     // After this point, we use the variant to store which check they did not complete the full follow up process for,
                     // therefore, we need to swap the details from the variant into the primary check and vise versa

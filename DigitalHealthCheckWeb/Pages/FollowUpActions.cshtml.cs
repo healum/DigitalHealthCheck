@@ -76,6 +76,8 @@ namespace DigitalHealthCheckWeb.Pages
 
         public IList<int> SelectedInterventions { get; set; }
 
+        public IList<ActionCategory> ActionCategories { get; set; }
+
         public FollowUpActionsModel(
             Database database,
             ICredentialsDecrypter credentialsDecrypter,
@@ -92,12 +94,22 @@ namespace DigitalHealthCheckWeb.Pages
 
         public async Task<IActionResult> OnGetAsync()
         {
-            if (!IsValidated())
-            {
-                return RedirectToValidation();
-            }
+            /*  if (!IsValidated())
+              {
+                  return RedirectToValidation();
+              }*/
+            ActionCategories = new List<ActionCategory>();
+            AllInterventions = new List<Intervention>();
 
-            await LoadData();
+            var d = await LoadData();
+
+            if (d != null)
+            {
+                return d;
+            }
+            // GenerateActionCategories();
+
+       
 
             if (!AllInterventions.Any())
             {
@@ -121,7 +133,7 @@ namespace DigitalHealthCheckWeb.Pages
                     return RedirectWithId("./HealthCheckComplete");
                 }
             }
-
+            Console.WriteLine("action categories and all inteventions" + ActionCategories.Count() + ", " + AllInterventions.Count());
             return Page();
         }
 
@@ -154,7 +166,7 @@ namespace DigitalHealthCheckWeb.Pages
 
             await Database.SaveChangesAsync();
 
-            if(everyoneHealthReferralService.HasEveryoneHealthReferrals(check))
+            if (everyoneHealthReferralService.HasEveryoneHealthReferrals(check))
             {
                 return RedirectWithId("./EveryoneHealthConsent");
             }
@@ -171,8 +183,9 @@ namespace DigitalHealthCheckWeb.Pages
             return check;
         }
 
-        private async Task LoadData()
+        private async Task<IActionResult> LoadData()
         {
+
             var check = await GetHealthCheckAsync();
 
             await Database.Entry(check).Collection(c => c.ChosenBarriers).LoadAsync();
@@ -256,34 +269,191 @@ namespace DigitalHealthCheckWeb.Pages
 
             var additionalInterventions = Database.Interventions.Where(x => x.Barrier == null && barriers.Select(y => y.Category).Contains(x.Category));
 
-            //Some barrierless interventions have extra requirements, so we filter on those.
-
-            var bmi = bodyMassIndexCalculator.CalculateBodyMassIndex(check.Height.Value, check.Weight.Value);
-
-            if (bmi >= 40)
-            {
-                additionalInterventions = additionalInterventions.Where(x => x.Id != Database.BmiOver30InterventionId);
-            }
-            else if (bmi > 30)
-            {
-                additionalInterventions = additionalInterventions.Where(x => x.Id != Database.BmiOver40InterventionId);
-            }
-            else
-            {
-                additionalInterventions = additionalInterventions.Where(x => x.Id != Database.BmiOver30InterventionId && x.Id != Database.BmiOver40InterventionId);
-            }
-
-            if (check.BloodSugar < 42 || check.BloodSugar > 47)
-            {
-                additionalInterventions = additionalInterventions.Where(x => x.Id != Database.NationalDiabetesPreventionProgramInterventionId);
-            }
-
             AllInterventions = barriers
-                .SelectMany(x => x.Interventions)
-                .Concat(additionalInterventions)
-                .ToList();
+                       .SelectMany(x => x.Interventions)
+                       .Concat(additionalInterventions)
+                       .ToList();
+            SelectedInterventions = AllInterventions.Select(x => x.Id).ToList();
+            ActionCategories = await GenerateActionCategories();
 
-            SelectedInterventions = check.ChosenInterventions.Select(x => x.Id).ToList();
+            if (ActionCategories != null && ActionCategories.Count() > 0)
+            {
+                Console.WriteLine(AllInterventions.Count().ToString() + " all interventions");
+                foreach (var intervention in AllInterventions)
+                {
+                    Console.WriteLine(intervention.Text.ToString() + " " + intervention.LinkDescription.ToString() + " " + intervention.Category);
+
+                }
+
+
+
+                foreach (var action in ActionCategories)
+                {
+                    Console.WriteLine("action is " + action.Name.ToString() + " " + action.Items.Count() + " items");
+                }
+                return await Reload();
+            }
+
+
+            return null;
+
+
+   /*         Console.WriteLine(SelectedInterventions.Count.ToString() + " selected interventions");
+            if (check != null && check.Height != null && check.Weight != null)
+            {
+                var bmi = bodyMassIndexCalculator.CalculateBodyMassIndex(check.Height.Value, check.Weight.Value);
+                if (bmi >= 40)
+                {
+                    additionalInterventions = additionalInterventions.Where(x => x.Id != Database.BmiOver30InterventionId);
+                }
+                else if (bmi > 30)
+                {
+                    additionalInterventions = additionalInterventions.Where(x => x.Id != Database.BmiOver40InterventionId);
+                }
+                else
+                {
+                    additionalInterventions = additionalInterventions.Where(x => x.Id != Database.BmiOver30InterventionId && x.Id != Database.BmiOver40InterventionId);
+                }
+
+                if (check.BloodSugar < 42 || check.BloodSugar > 47)
+                {
+                    additionalInterventions = additionalInterventions.Where(x => x.Id != Database.NationalDiabetesPreventionProgramInterventionId);
+                }
+                // TODO Update interventions
+
+
+            }
+
+*/
+        }
+
+        private Task<List<ActionCategory>> GenerateActionCategories()
+        {
+            return Task.Run(() =>
+                     new[] {
+                    new ActionCategory
+                    (
+                        "Visit your GP clinic",
+                        "Your GP clinic will discuss your results with you and make sure that you have all of the right follow-up clinical support you need, as well as access to lifestyle support services.",
+                        "How would you like to be supported to visit your GP clinic? (optional)",
+                        "GP",
+                        AllInterventions.Where(x=> x.Category == "gp").ToList(),
+                        SelectedInterventions.ToList(),
+                        CustomBarriers.FirstOrDefault(x=> x.Category == "gp")?.Text
+                    ),
+                    new ActionCategory
+                    (
+                        "Stop smoking",
+                        "Quitting smoking will help you live a healthier life.",
+                        "How would you like to be supported to stop smoking? (optional)",
+                        "Smoking",
+                        AllInterventions.Where(x=> x.Category == "smoking").ToList(),
+                        SelectedInterventions.ToList(),
+                        CustomBarriers.FirstOrDefault(x=> x.Category == "smoking")?.Text
+                    ),
+                    new ActionCategory
+                    (
+                        "Achieve a healthy weight",
+                        "Being a healthy weight is an important part of living well.",
+                        "How would you like to be supported to achieve a healthy weight? (optional)",
+                        "Weight",
+                        AllInterventions.Where(x=> x.Category == "weight").ToList(),
+                        SelectedInterventions.ToList(),
+                        CustomBarriers.FirstOrDefault(x=> x.Category == "weight")?.Text
+                    ),
+                    new ActionCategory
+                    (
+                        "Drink less",
+                        "Drinking less will help you feel better and be healthier.",
+                        "How would you like to be supported to drink less? (optional)",
+                        "Alcohol",
+                        AllInterventions.Where(x=> x.Category == "alcohol").ToList(),
+                        SelectedInterventions.ToList(),
+                        CustomBarriers.FirstOrDefault(x=> x.Category == "alcohol")?.Text
+                    ),
+                    new ActionCategory
+                    (
+                        "Move more",
+                        "Regular physical activity is an important part of living well.",
+                        "How would you like to be supported to move more? (optional)",
+                        "Move",
+                        AllInterventions.Where(x=> x.Category == "move").ToList(),
+                        SelectedInterventions.ToList(),
+                        CustomBarriers.FirstOrDefault(x=> x.Category == "move")?.Text
+                    ),
+                    new ActionCategory
+                    (
+                        "Improve your mental wellbeing",
+                        "Taking care of your mental wellbeing will help you to live a healthier life.",
+                        "How would you like to be supported to improve your mental wellbeing? (optional)",
+                        "Mental",
+                        AllInterventions.Where(x=> x.Category == "mental").ToList(),
+                        SelectedInterventions.ToList(),
+                        CustomBarriers.FirstOrDefault(x=> x.Category == "mental")?.Text
+                    ),
+                    new ActionCategory
+                    (
+                        "Improve your cholesterol levels",
+                        "Healthy cholesterol levels are an important part of living well.",
+                        "How would you like to be supported to improve your cholesterol levels? (optional)",
+                        "ImproveCholesterol",
+                        AllInterventions.Where(x=> x.Category == "improvecholesterol").ToList(),
+                        SelectedInterventions.ToList(),
+                        CustomBarriers.FirstOrDefault(x=> x.Category == "improvecholesterol")?.Text
+                    ),
+                    new ActionCategory
+                    (
+                        "Improve your blood pressure",
+                        "Healthy blood pressure is an important part of living well.",
+                        "How would you like to be supported to improve your blood pressure levels? (optional)",
+                        "ImproveBloodPressure",
+                        AllInterventions.Where(x=> x.Category == "improvebloodpressure").ToList(),
+                        SelectedInterventions.ToList(),
+                        CustomBarriers.FirstOrDefault(x=> x.Category == "improvebloodpressure")?.Text
+                    ),
+                    new ActionCategory
+                    (
+                        "Improve your blood sugar level",
+                        "Having a healthy blood sugar level is an important part of living well.",
+                        "How would you like to be supported to improve your blood sugar level? (optional)",
+                        "ImproveBloodSugar",
+                        AllInterventions.Where(x=> x.Category == "improvebloodsugar").ToList(),
+                        SelectedInterventions.ToList(),
+                        CustomBarriers.FirstOrDefault(x=> x.Category == "improvebloodsugar")?.Text
+                    ),
+                    new ActionCategory
+                    (
+                        "Check your blood sugar level",
+                        "Knowing your blood sugar level is important for understanding your risk of heart and circulatory diseases.",
+                        "How would you like to be supported to get your blood sugar level checked? (optional)",
+                        "BloodSugar",
+                        AllInterventions.Where(x=> x.Category == "bloodsugar").ToList(),
+                        SelectedInterventions.ToList(),
+                        CustomBarriers.FirstOrDefault(x=> x.Category == "bloodsugar")?.Text
+                    ),
+                     new ActionCategory
+                    (
+                        "Check your cholesterol levels",
+                        "Knowing your cholesterol levels is important for understanding your risk of heart and circulatory diseases.",
+                        "How would you like to be supported to get your cholesterol levels checked? (optional)",
+                        "Cholesterol",
+                        AllInterventions.Where(x=> x.Category == "cholesterol").ToList(),
+                        SelectedInterventions.ToList(),
+                        CustomBarriers.FirstOrDefault(x=> x.Category == "cholesterol")?.Text
+                    ),
+                    new ActionCategory
+                    (
+                        "Check your blood pressure level",
+                        "Knowing your blood pressure level is important for understanding your risk of heart and circulatory diseases.",
+                        "How would you like to be supported to get your blood pressure level checked? (optional)",
+                        "BloodPressure",
+                        AllInterventions.Where(x=> x.Category == "bloodpressure").ToList(),
+                        SelectedInterventions.ToList(),
+                        CustomBarriers.FirstOrDefault(x=> x.Category == "bloodpressure")?.Text
+                    )
+                 }.Where(x => !string.IsNullOrEmpty(x.CustomBarrier) || x.HasInterventions)
+                .ToList());
+       
         }
 
         async Task<IList<Intervention>> LoadInterventionsAsync(IEnumerable<string> unsanitisedIds)

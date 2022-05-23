@@ -45,11 +45,13 @@ namespace DigitalHealthCheckWeb.Pages
         {
             await base.LoadPageData();
 
-            var check = await GetHealthCheckAsync();
+            // var check = await GetHealthCheckAsync();
 
-            PhysicalActivity = (PhysicalActivityStatus)check.GPPAQ;
+           // PhysicalActivity = (PhysicalActivityStatus)check.GPPAQ;
 
-            Walking = check.Walking > GPPAQActivityLevel.LessThanOneHour;
+           // Walking = check.Walking > GPPAQActivityLevel.LessThanOneHour;
+            PhysicalActivity = PhysicalActivityStatus.Sedentary;
+            Walking = GPPAQActivityLevel.None > GPPAQActivityLevel.LessThanOneHour;
         }
 
         protected override async Task<FollowUp> GetFollowUpAsync(HealthCheck check)

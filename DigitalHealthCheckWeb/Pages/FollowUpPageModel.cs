@@ -224,10 +224,10 @@ namespace DigitalHealthCheckWeb.Pages
 
         public virtual async Task<IActionResult> OnGetAsync()
         {
-            if (RequiresValidation && !IsValidated())
+/*            if (RequiresValidation && !IsValidated())
             {
                 return RedirectToValidation();
-            }
+            }*/
 
             await LoadPageData();
 

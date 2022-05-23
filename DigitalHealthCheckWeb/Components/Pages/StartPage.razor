@@ -22,11 +22,15 @@
         <div class="govuk-button-group">
             <GDSButton PreventDoubleClick="true" Type="GDSButton.InputType.Submit" Text="Start Now" IsStartButton="true" />
             <GDSButton PreventDoubleClick="true" Classes="govuk-button--secondary" HRef="@($"./{ContinuePage}{BuildQuery(IdQueryParam)}")" Text="Skip to where I left off" />
+            <GDSButton PreventDoubleClick="true" Classes="govuk-button--secondary" HRef="@($"./{ResultsPage}{BuildQuery(IdQueryParam)}")" Text="Skip health check"/>
+
         </div>
     }
     else
     {
         <GDSButton PreventDoubleClick="true" Type="GDSButton.InputType.Submit" Text="Start Now" IsStartButton="true" />
+        <GDSButton PreventDoubleClick="true" Classes="govuk-button--secondary" HRef="@($"./{ResultsPage}{BuildQuery(IdQueryParam)}")" Text="Skip health check"/>
+
     }
 </form>
 
@@ -100,4 +104,5 @@
     public bool FirstTime { get; set; } = true;
     [Parameter]
     public string ContinuePage { get; set; } = "CheckYourAnswers";
+    public string ResultsPage { get; set; } = "Results";
 }

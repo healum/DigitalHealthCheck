@@ -1,6 +1,8 @@
 ﻿@using DigitalHealthCheckCommon
 @using DigitalHealthCheckEF
-@using DigitalHealthCheckWeb.Model;
+@using DigitalHealthCheckWeb.Model
+@using DigitalHealthCheckWeb.Components.FirstParty
+
 @inherits Page
 
 @if (ErrorList.Any())
@@ -76,7 +78,9 @@ else if (!RequestedNoContact)
 <GDSDetails SummaryText="Links to your support services">
     @foreach (var intervention in InterventionsOrdered)
     {
-            <Intervention Url="@intervention.Url" Prompt="@intervention.Text" LinkTitle="@intervention.LinkTitle" LinkDescription="@intervention.LinkDescription" />
+            <DigitalHealthCheckWeb.Components.FirstParty.Intervention 
+                Url="@intervention.Url" Prompt="@intervention.Text" LinkTitle="@intervention.LinkTitle" LinkDescription="@intervention.LinkDescription"
+             />
 
             if(Check.PrefersToContactEveryoneHealth == true && EveryoneHealthReferralInterventions.Contains(intervention))
             {

@@ -1,4 +1,24 @@
-﻿<p class="govuk-body">You told us '@Prompt', so here is the link to <a class="govuk-link" title="@LinkTitle" rel="noreferrer noopener" target="_blank" href="@Url">@LinkDescription (opens in a new tab)</a></p>
+﻿<div class="healum-card p-2">
+    <div class="healum-row">
+        @if(@LinkDescription.Contains("NHS")) {
+            <div class="healum-image nhs"></div>
+        } else if(@LinkDescription.Contains("Southwark")) {
+             <div class="healum-image southwark"></div>
+        } else {
+             <div class="healum-image placeholder"></div>
+        }
+        <h3 class="healum-card-title">
+            @LinkDescription
+        </h3>
+    </div>
+
+    <p class="healum-card-description">
+          You told us '@Prompt', so here is the link to 
+           <a class="govuk-link" title="@LinkTitle" rel="noreferrer noopener" target="_blank" href="@Url">
+               @LinkDescription (opens in a new tab)</a>
+    </p>
+  
+</div>
 
 @code {
     [Parameter]
